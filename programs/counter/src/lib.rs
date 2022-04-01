@@ -14,31 +14,16 @@ declare_id!("DBs6UqAaukPrGxowgq1r6yBzWCQAQtQQwJQ9TnNm5J9Q");
 pub mod counter {
     use super::*;
 
-    #[state]
-    pub struct Counter {
-        pub count: u64,
-        pub auth_program: Pubkey,
-    }
 
-    impl Counter {
-        pub fn new(_ctx: Context<Empty>, auth_program: Pubkey) -> Result<Self> {
-            Ok(Self {
-                count: 0,
-                auth_program,
-            })
-        }
+    pub fn set_count(ctx: Context<SetCount>, new_count: u64) -> ProgramResult {
+        // Ask the auth program if we should approve the transaction.
+        let cpi_program = ctx.accounts.auth_program.clone();
+        let cpi_ctx = CpiContext::new(cpi_program, Empty {});
+        k_auth::is_authorized(cpi_ctx, 10, new_count)?;
 
-        #[access_control(SetCount::accounts(&self, &ctx))]
-        pub fn set_count(&mut self, ctx: Context<SetCount>, new_count: u64) -> ProgramResult {
-            // Ask the auth program if we should approve the transaction.
-            let cpi_program = ctx.accounts.auth_program.clone();
-            let cpi_ctx = CpiContext::new(cpi_program, Empty {});
-            auth::is_authorized(cpi_ctx, self.count, new_count)?;
-
-            // Approved, so update.
-            self.count = new_count;
-            Ok(())
-        }
+        // Approved, so update.
+        //self.count = new_count;
+        Ok(())
     }
 }
 
@@ -50,19 +35,8 @@ pub struct SetCount<'info> {
     auth_program: AccountInfo<'info>,
 }
 
-impl<'info> SetCount<'info> {
-    // Auxiliary account validation requiring program inputs. As a convention,
-    // we separate it from the business logic of the instruction handler itself.
-    pub fn accounts(counter: &Counter, ctx: &Context<SetCount>) -> Result<()> {
-        if ctx.accounts.auth_program.key != &counter.auth_program {
-            return Err(ErrorCode::InvalidAuthProgram.into());
-        }
-        Ok(())
-    }
-}
-
 #[interface]
-pub trait Auth<'info, T: Accounts<'info>> {
+pub trait KAuth<'info, T: Accounts<'info>> {
     fn is_authorized(ctx: Context<T>, current: u64, new: u64) -> ProgramResult;
 }
 

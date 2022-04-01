@@ -4,18 +4,19 @@
 //! Creative, I know. :P.
 
 use anchor_lang::prelude::*;
-use counter::Auth;
+use counter::KAuth;
 
 declare_id!("9HKRynjZxXGqmmNUKV8cqpGMo6YzfweLVYzBzGERhUHF");
 
 #[program]
 pub mod counter_auth {
     use super::*;
-
+    
+    
     #[state]
     pub struct CounterAuth;
 
-    impl<'info> Auth<'info, Empty> for CounterAuth {
+    impl<'info> KAuth<'info, Empty> for CounterAuth {
         fn is_authorized(_ctx: Context<Empty>, current: u64, new: u64) -> ProgramResult {
             if current % 2 == 0 {
                 if new % 2 == 0 {
